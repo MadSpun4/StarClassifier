@@ -52,6 +52,9 @@ class KnowledgeBaseService:
     def get_class_range(self, class_name: str, property_name: str) -> dict | None:
         return self._data['class_values'].get(class_name, {}).get(property_name)
 
+    def class_has_property(self, class_name: str, property_name: str) -> bool:
+        return property_name in self._data['class_descriptions'].get(class_name, [])
+
     def _assert_range_inside_possible(self, property_name: str, low: float, high: float) -> None:
         possible_range = self.get_possible_range(property_name)
         if possible_range is None:
@@ -140,16 +143,24 @@ class KnowledgeBaseService:
         self.save()
 
     def set_class_description(self, class_name: str, properties: list[str]) -> None:
-        self._data['class_descriptions'][class_name] = [p for p in self._data['properties'] if p in properties]
+        allowed_properties = [p for p in self._data['properties'] if p in properties]
+        self._data['class_descriptions'][class_name] = allowed_properties
+        class_values = self._data['class_values'].setdefault(class_name, {})
+        for property_name in list(class_values.keys()):
+            if property_name not in allowed_properties:
+                class_values.pop(property_name, None)
         self.save()
 
-    def validate_class_range_candidate(self, property_name: str, low: float, high: float) -> None:
+    def validate_class_range_candidate(self, class_name: str, property_name: str, low: float, high: float) -> None:
+        if not self.class_has_property(class_name, property_name):
+            raise ValueError(
+                f'Нельзя задать значение для класса светимости, пока свойство «{property_name}» не добавлено в описание свойств класса «{class_name}».')
         if low > high:
             raise ValueError('Начальная граница не может быть больше конечной.')
         self._assert_range_inside_possible(property_name, float(low), float(high))
 
     def update_class_range(self, class_name: str, property_name: str, low: float, high: float) -> None:
-        self.validate_class_range_candidate(property_name, low, high)
+        self.validate_class_range_candidate(class_name, property_name, low, high)
         self._data['class_values'].setdefault(class_name, {})[property_name] = {
             'min': float(low),
             'max': float(high),
@@ -190,6 +201,11 @@ class KnowledgeBaseService:
                     report.class_ranges_out_of_possible_bounds.append(
                         (class_name, property_name, class_min, class_max, possible_min, possible_max)
                     )
+
+            extra_values = self._data['class_values'].get(class_name, {})
+            for property_name in extra_values:
+                if property_name not in description:
+                    report.class_values_outside_description.append((class_name, property_name))
 
         report.properties_not_used = [
             property_name for property_name in self._data['properties']

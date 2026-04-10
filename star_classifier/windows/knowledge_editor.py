@@ -378,18 +378,64 @@ class KnowledgeEditorWindow(BaseWindow):
 
         right = tk.Frame(content, bg=COLORS['bg'])
         right.pack(side='left', fill='both', expand=True)
-        current_range = self.kb_service.get_class_range(self.selected_class.get(), self.selected_property.get()) or {'min': None, 'max': None}
-        possible_range = self.kb_service.get_possible_range(self.selected_property.get()) or {'min': None, 'max': None}
-        help_text = f'Возможные значения свойства: {format_range(possible_range.get("min"), possible_range.get("max"))}. Значение класса должно лежать внутри этих границ.'
-        initial_range = current_range if current_range.get('min') is not None or current_range.get('max') is not None else {'min': None, 'max': None}
-        self._build_range_editor(
-            right,
-            current_range=current_range,
-            initial_range=initial_range,
-            help_text=help_text,
-            validator=lambda low, high: self.kb_service.validate_class_range_candidate(self.selected_property.get(), low, high),
-            save_command=self._save_class_value,
-        )
+        current_class = self.selected_class.get()
+        current_property = self.selected_property.get()
+        class_description = set(self.kb_service.get_class_description(current_class))
+        property_is_allowed = current_property in class_description
+
+        if not property_is_allowed:
+            possible_range = self.kb_service.get_possible_range(current_property) or {'min': None, 'max': None}
+            tk.Label(
+                right,
+                text='Сначала добавьте это свойство в описание свойств выбранного класса светимости. Пока оно не входит в описание класса, задавать для него диапазон нельзя.',
+                bg=COLORS['bg'],
+                fg='#d9534f',
+                font=self.fonts.small,
+                wraplength=520,
+                justify='left',
+            ).pack(anchor='w', pady=(0, 10))
+            tk.Label(
+                right,
+                text=f'Возможные значения свойства: {format_range(possible_range.get("min"), possible_range.get("max"))}.',
+                bg=COLORS['bg'],
+                fg=COLORS['muted'],
+                font=self.fonts.small,
+                wraplength=520,
+                justify='left',
+            ).pack(anchor='w')
+            preview = tk.Frame(right, bg=COLORS['bg'])
+            preview.pack(anchor='w', pady=(14, 0))
+            tk.Label(preview, text='Текущее значение:', bg=COLORS['bg'], font=self.fonts.small).grid(row=0, column=0, columnspan=2, sticky='w')
+            current_range = self.kb_service.get_class_range(current_class, current_property) or {'min': None, 'max': None}
+            tk.Label(preview, text='От', bg=COLORS['bg'], font=self.fonts.base).grid(row=1, column=0, sticky='w', pady=(8, 0))
+            tk.Label(preview, text='До', bg=COLORS['bg'], font=self.fonts.base).grid(row=1, column=1, sticky='w', padx=(24, 0), pady=(8, 0))
+            tk.Label(preview, text=format_number(current_range.get('min')), bg=COLORS['bg'], font=self.fonts.base).grid(row=2, column=0, sticky='w')
+            tk.Label(preview, text=format_number(current_range.get('max')), bg=COLORS['bg'], font=self.fonts.base).grid(row=2, column=1, sticky='w', padx=(24, 0))
+            actions = tk.Frame(right, bg=COLORS['bg'])
+            actions.pack(fill='x', pady=(14, 0))
+            tk.Button(
+                actions,
+                text='Перейти к описанию свойств класса',
+                bg=COLORS['gray_btn'],
+                bd=0,
+                padx=16,
+                pady=8,
+                cursor='hand2',
+                command=lambda: self.show_page('class_description'),
+            ).pack(side='left')
+        else:
+            current_range = self.kb_service.get_class_range(current_class, current_property) or {'min': None, 'max': None}
+            possible_range = self.kb_service.get_possible_range(current_property) or {'min': None, 'max': None}
+            help_text = f'Возможные значения свойства: {format_range(possible_range.get("min"), possible_range.get("max"))}. Значение класса должно лежать внутри этих границ.'
+            initial_range = current_range if current_range.get('min') is not None or current_range.get('max') is not None else {'min': None, 'max': None}
+            self._build_range_editor(
+                right,
+                current_range=current_range,
+                initial_range=initial_range,
+                help_text=help_text,
+                validator=lambda low, high: self.kb_service.validate_class_range_candidate(self.selected_class.get(), self.selected_property.get(), low, high),
+                save_command=self._save_class_value,
+            )
 
     def _save_class_value(self, low_text, high_text):
         try:
@@ -434,6 +480,11 @@ class KnowledgeEditorWindow(BaseWindow):
                 lines.append(
                     f'  • {class_name} / {property_name}: [{format_number(class_min)}; {format_number(class_max)}] вне [{format_number(possible_min)}; {format_number(possible_max)}]'
                 )
+            lines.append('')
+        if report.class_values_outside_description:
+            lines.append('Значения классов, заданные для свойств вне описания класса:')
+            for class_name, property_name in report.class_values_outside_description:
+                lines.append(f'  • {class_name} / {property_name}')
             lines.append('')
         if report.properties_not_used:
             lines.append('Свойства, которые пока не используются ни в одном описании класса:')

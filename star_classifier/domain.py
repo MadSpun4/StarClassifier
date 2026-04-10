@@ -13,6 +13,7 @@ class ValidationReport:
     class_properties_without_values: list[tuple[str, str]] = field(default_factory=list)
     properties_not_used: list[str] = field(default_factory=list)
     class_ranges_out_of_possible_bounds: list[tuple[str, str, float | None, float | None, float | None, float | None]] = field(default_factory=list)
+    class_values_outside_description: list[tuple[str, str]] = field(default_factory=list)
 
     @property
     def is_valid(self) -> bool:
@@ -21,6 +22,7 @@ class ValidationReport:
             self.classes_without_description,
             self.class_properties_without_values,
             self.class_ranges_out_of_possible_bounds,
+            self.class_values_outside_description,
         ])
 
 
