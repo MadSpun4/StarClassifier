@@ -86,7 +86,7 @@ class MlClassifierService:
                     masked[property_name] = np.nan
         return masked
 
-    def _build_dataset(self, knowledge_base: dict, n_per_class: int = 1200, random_state: int = 42) -> pd.DataFrame:
+    def _build_dataset(self, knowledge_base: dict, n_per_class: int = 600, random_state: int = 42) -> pd.DataFrame:
         rng = np.random.default_rng(random_state)
         properties = self._feature_columns(knowledge_base)
         rows = []
@@ -128,7 +128,7 @@ class MlClassifierService:
                 rows.append(row)
         return pd.DataFrame(rows)
 
-    def train(self, knowledge_base: dict, n_per_class: int = 1200, random_state: int = 42) -> dict:
+    def train(self, knowledge_base: dict, n_per_class: int = 600, random_state: int = 42) -> dict:
         dataset = self._build_dataset(knowledge_base, n_per_class=n_per_class, random_state=random_state)
         feature_columns = self._feature_columns(knowledge_base)
         x = self._prepare_features(dataset[feature_columns])

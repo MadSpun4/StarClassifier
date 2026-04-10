@@ -245,7 +245,7 @@ class DataEntryWindow(BaseWindow):
             lines.append('Классы, опровергнутые алгоритмом:')
             for item in result.rejected:
                 if item.message:
-                    lines.append(f'• {item.class_name}: {item.message}')
+                    lines.append(f'• {item.message}')
                 else:
                     lines.append(
                         f'• Класс светимости «{item.class_name}» опровергнут, так как значение {format_number(item.input_value)} свойства «{item.property_name}» не принадлежит множеству значений {format_range(item.range_min, item.range_max)}.'

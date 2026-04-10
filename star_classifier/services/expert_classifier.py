@@ -27,19 +27,33 @@ class ExpertClassifierService:
 
         for class_name in knowledge_base['classes']:
             description = knowledge_base['class_descriptions'].get(class_name, [])
+            description_set = set(description)
             class_values = knowledge_base['class_values'].get(class_name, {})
             rejection = None
-            for property_name in description:
-                if property_name not in inputs:
-                    continue
-                interval = class_values.get(property_name)
+            for property_name in provided_properties:
                 user_value = inputs[property_name]
+                if property_name not in description_set:
+                    rejection = RejectionReason(
+                        class_name=class_name,
+                        property_name=property_name,
+                        input_value=user_value,
+                        message=(
+                            f'Класс светимости «{class_name}» опровергнут, так как значение {user_value:g} '
+                            f'свойства «{property_name}» не определено для этого класса.'
+                        ),
+                    )
+                    break
+
+                interval = class_values.get(property_name)
                 if interval is None:
                     rejection = RejectionReason(
                         class_name=class_name,
                         property_name=property_name,
                         input_value=user_value,
-                        message='Знания об этом свойстве для класса не заполнены.',
+                        message=(
+                            f'Класс светимости «{class_name}» опровергнут, так как значение {user_value:g} '
+                            f'свойства «{property_name}» не определено для этого класса.'
+                        ),
                     )
                     break
                 if not (interval['min'] <= user_value <= interval['max']):
