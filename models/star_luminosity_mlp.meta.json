@@ -1,0 +1,10 @@
+{
+  "model_type": "sklearn.neural_network.MLPClassifier",
+  "knowledge_signature": "ec567bcac8547bc5ff7f82657947f9ae5f19a95613b40109de225741bd395932",
+  "accuracy": 0.8511363636363637,
+  "macro_f1": 0.85317882247338,
+  "n_per_class": 1200,
+  "samples_total": 8800,
+  "supports_missing_inputs": true,
+  "feature_space": "log10 for positive astrophysical quantities + raw log g"
+}

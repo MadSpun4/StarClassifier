@@ -1,0 +1,1 @@
+"""Star luminosity classifier package."""
