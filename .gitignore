@@ -45,3 +45,6 @@ _MEI*/
 
 # Python environment markers
 .python-version
+
+# GitHub release notes
+GITHUB_RELEASE.md
