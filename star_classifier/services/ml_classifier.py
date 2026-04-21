@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from shutil import copyfile
 
 import joblib
 import numpy as np
@@ -15,19 +15,30 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
+from star_classifier.runtime import RuntimePaths
 from star_classifier.utils.formatting import knowledge_signature
 
 
 class MlClassifierService:
-    def __init__(self, project_dir: Path):
-        self.project_dir = Path(project_dir)
-        self.models_dir = self.project_dir / 'models'
+    def __init__(self, paths: RuntimePaths):
+        self.paths = paths
+        self.seed_models_dir = self.paths.bundled_models_dir
+        self.seed_model_path = self.seed_models_dir / 'star_luminosity_mlp.joblib'
+        self.seed_meta_path = self.seed_models_dir / 'star_luminosity_mlp.meta.json'
+        self.models_dir = self.paths.models_dir
         self.models_dir.mkdir(parents=True, exist_ok=True)
         self.model_path = self.models_dir / 'star_luminosity_mlp.joblib'
         self.meta_path = self.models_dir / 'star_luminosity_mlp.meta.json'
         self.bundle = None
         self.error_message = ''
+        self._ensure_seed_files()
         self._load()
+
+    def _ensure_seed_files(self) -> None:
+        if not self.model_path.exists() and self.seed_model_path.exists() and self.seed_model_path != self.model_path:
+            copyfile(self.seed_model_path, self.model_path)
+        if not self.meta_path.exists() and self.seed_meta_path.exists() and self.seed_meta_path != self.meta_path:
+            copyfile(self.seed_meta_path, self.meta_path)
 
     def _load(self) -> None:
         self.bundle = None

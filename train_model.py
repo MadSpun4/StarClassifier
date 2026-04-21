@@ -5,15 +5,16 @@ from __future__ import annotations
 from pathlib import Path
 
 from star_classifier.repositories.knowledge_base_repository import KnowledgeBaseRepository
+from star_classifier.runtime import resolve_runtime_paths
 from star_classifier.services.knowledge_base_service import KnowledgeBaseService
 from star_classifier.services.ml_classifier import MlClassifierService
 
 
 def main():
-    project_dir = Path(__file__).resolve().parent
-    repository = KnowledgeBaseRepository(project_dir)
+    paths = resolve_runtime_paths(Path(__file__).resolve().parent)
+    repository = KnowledgeBaseRepository(paths)
     kb_service = KnowledgeBaseService(repository)
-    ml_service = MlClassifierService(project_dir)
+    ml_service = MlClassifierService(paths)
     report = kb_service.validate()
     if not report.is_valid:
         raise SystemExit('База знаний заполнена не полностью. Сначала исправьте ошибки в редакторе знаний.')
