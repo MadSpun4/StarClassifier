@@ -1,4 +1,5 @@
-@echo off
+﻿@echo off
+rem Keep this file in UTF-8 with BOM and CRLF so cmd.exe parses it correctly.
 setlocal EnableExtensions
 chcp 65001 >nul
 
