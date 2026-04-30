@@ -33,7 +33,7 @@ class LauncherFrame(tk.Frame):
         ).pack(pady=(24, 10))
         tk.Label(
             card,
-            text='Приложение использует редактируемую базу знаний из курсовой документации и ML-модель для разрешения неоднозначных случаев.',
+            text='Приложение использует редактируемую базу знаний и ML-модель для разрешения неоднозначных случаев.',
             font=self.master.fonts.launcher_text,
             bg=COLORS['white'],
             justify='center',
@@ -57,7 +57,7 @@ class LauncherFrame(tk.Frame):
             ('Открыть редактор базы знаний', self.open_editor, COLORS['gray_btn']),
             ('Открыть ввод исходных данных', self.open_data_entry, COLORS['green']),
             ('Переобучить ML-модель по текущей БЗ', self.retrain_model, COLORS['blue']),
-            ('Сбросить базу знаний к значениям из курсовой', self.reset_knowledge_base, COLORS['gray_btn']),
+            ('Сбросить базу знаний к стандартным значениям', self.reset_knowledge_base, COLORS['gray_btn']),
         ]:
             tk.Button(
                 buttons,
@@ -120,4 +120,4 @@ class LauncherFrame(tk.Frame):
     def reset_knowledge_base(self):
         self.kb_service.reset_to_defaults()
         self.refresh_status()
-        info(self, 'База знаний восстановлена', 'Значения базы знаний снова соответствуют курсовой документации.')
+        info(self, 'База знаний восстановлена', 'Значения базы знаний были заменены на стандартные.')

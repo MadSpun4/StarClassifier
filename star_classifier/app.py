@@ -25,7 +25,7 @@ class StarClassifierApp(tk.Tk):
         repository = KnowledgeBaseRepository(self.paths)
         self.kb_service = KnowledgeBaseService(repository)
         self.ml_service = MlClassifierService(self.paths)
-        self.expert_classifier = ExpertClassifierService(self.ml_service)
+        self.expert_classifier = ExpertClassifierService()
         launcher = LauncherFrame(
             self,
             kb_service=self.kb_service,

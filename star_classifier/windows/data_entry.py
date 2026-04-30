@@ -20,6 +20,7 @@ class DataEntryWindow(BaseWindow):
         self.on_data_changed = on_data_changed or (lambda: None)
         self.page_content = None
         self.current_inputs = {}
+        self.last_inputs = {}
         self.current_property = tk.StringVar(value=self.kb_service.list_properties()[0])
         self.selected_view_class = tk.StringVar(value=self.kb_service.list_classes()[0])
         self.selected_view_property = tk.StringVar(value=self.kb_service.list_properties()[0])
@@ -93,7 +94,7 @@ class DataEntryWindow(BaseWindow):
 
         hint = (
             'Можно вводить не все параметры. Алгоритм покажет все классы, которые не опровергаются '
-            'введёнными значениями, а затем будут показаны вероятности ML-модели.'
+            'введёнными значениями. Вероятности ML-модели можно рассчитать отдельно на странице результата.'
         )
         tk.Label(area, text=hint, bg=COLORS['bg'], fg=COLORS['muted'], font=self.fonts.small, wraplength=900, justify='left').pack(fill='x', pady=(12, 0))
 
@@ -165,11 +166,45 @@ class DataEntryWindow(BaseWindow):
         except Exception as exc:
             error(self, 'Ошибка классификации', str(exc))
             return
+        self.last_inputs = dict(self.current_inputs)
         self.show_result_page(result)
         self.on_data_changed()
 
+    def _calculate_ml_probabilities(self):
+        result = self.last_result
+        if result is None:
+            info(self, 'Нет данных', 'Сначала выполните классификацию звезды.')
+            return
+        if not result.matched_classes:
+            info(self, 'Нет подходящих классов', 'ML-вероятности рассчитываются после того, как экспертный алгоритм нашёл хотя бы один подходящий класс.')
+            return
+        if not self.ml_service.is_compatible(self.kb_service.data):
+            result.probabilities = []
+            result.ml_note = 'ML-модель отсутствует или не соответствует текущей базе знаний.'
+            self.show_result_page(result)
+            return
+
+        allowed_labels = result.matched_classes if len(result.matched_classes) > 1 else None
+        top_n = len(result.matched_classes) if len(result.matched_classes) > 1 else len(self.kb_service.data['classes'])
+        try:
+            _, result.probabilities = self.ml_service.predict(
+                self.last_inputs or self.current_inputs,
+                allowed_labels=allowed_labels,
+                top_n=top_n,
+            )
+        except Exception as exc:
+            error(self, 'Ошибка ML-модели', str(exc))
+            return
+
+        if len(result.matched_classes) > 1:
+            result.ml_note = 'Ниже показаны вероятности ML-модели среди классов, не опровергнутых алгоритмом.'
+        else:
+            result.ml_note = 'Ниже показаны вероятности ML-модели по всем классам светимости.'
+        self.show_result_page(result)
+
     def build_result_page(self, parent):
         result = self.last_result
+        result_inputs = self.last_inputs or self.current_inputs
         area = tk.Frame(parent, bg=COLORS['bg'])
         area.pack(fill='both', expand=True, padx=14, pady=10)
         if result is None:
@@ -207,7 +242,7 @@ class DataEntryWindow(BaseWindow):
             row = tk.Frame(table, bg=COLORS['white'])
             row.pack(fill='x', pady=6)
             tk.Label(row, text=property_name, bg=COLORS['white'], anchor='w', width=28, font=self.fonts.small).pack(side='left')
-            tk.Label(row, text=format_number(self.current_inputs.get(property_name)), bg=COLORS['white'], anchor='w', font=self.fonts.small).pack(side='left', fill='x', expand=True)
+            tk.Label(row, text=format_number(result_inputs.get(property_name)), bg=COLORS['white'], anchor='w', font=self.fonts.small).pack(side='left', fill='x', expand=True)
         if not result.evaluated_properties:
             tk.Label(table, text='Значения не введены.', bg=COLORS['white'], anchor='w', font=self.fonts.small).pack(fill='x')
 
@@ -229,7 +264,7 @@ class DataEntryWindow(BaseWindow):
         if result.evaluated_properties:
             lines.append('Алгоритм учитывал только введённые свойства:')
             for property_name in result.evaluated_properties:
-                lines.append(f'• {property_name}: {format_number(self.current_inputs[property_name])}')
+                lines.append(f'• {property_name}: {format_number(result_inputs.get(property_name))}')
             lines.append('')
         if result.probabilities:
             lines.append('Оценка ML-модели:')
@@ -240,6 +275,10 @@ class DataEntryWindow(BaseWindow):
             lines.append('')
         elif result.ml_note:
             lines.append(result.ml_note)
+            lines.append('')
+        elif result.matched_classes:
+            lines.append('Вероятности ML-модели ещё не рассчитаны.')
+            lines.append('Нажмите кнопку «Рассчитать вероятности ML-модели», чтобы запустить расчёт.')
             lines.append('')
         if result.rejected:
             lines.append('Классы, опровергнутые алгоритмом:')
@@ -257,7 +296,12 @@ class DataEntryWindow(BaseWindow):
 
         bottom = tk.Frame(area, bg=COLORS['bg'])
         bottom.pack(fill='x', pady=(14, 0))
-        tk.Button(bottom, text='Вернуться к вводу исходных данных', bg=COLORS['gray_btn'], bd=0, padx=16, pady=8, cursor='hand2', command=self.show_input_page).pack(anchor='center')
+        if result.matched_classes:
+            tk.Button(bottom, text='Вернуться к вводу исходных данных', bg=COLORS['gray_btn'], bd=0, padx=16, pady=8, cursor='hand2', command=self.show_input_page).pack(side='left')
+            ml_button_text = 'Пересчитать вероятности ML-модели' if result.probabilities else 'Рассчитать вероятности ML-модели'
+            tk.Button(bottom, text=ml_button_text, bg=COLORS['blue'], fg='white', bd=0, padx=16, pady=8, cursor='hand2', command=self._calculate_ml_probabilities).pack(side='right')
+        else:
+            tk.Button(bottom, text='Вернуться к вводу исходных данных', bg=COLORS['gray_btn'], bd=0, padx=16, pady=8, cursor='hand2', command=self.show_input_page).pack(anchor='center')
 
     def build_knowledge_view_page(self, parent):
         classes = self.kb_service.list_classes()

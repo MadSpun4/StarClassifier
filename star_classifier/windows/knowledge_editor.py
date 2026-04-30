@@ -497,11 +497,11 @@ class KnowledgeEditorWindow(BaseWindow):
 
         bottom = tk.Frame(area, bg=COLORS['bg'])
         bottom.pack(fill='x', pady=(14, 0))
-        tk.Button(bottom, text='Сбросить к значениям из курсовой', bg=COLORS['gray_btn'], bd=0, padx=16, pady=8, cursor='hand2', command=self._reset_defaults).pack(side='left')
+        tk.Button(bottom, text='Сбросить к начальным значениям', bg=COLORS['gray_btn'], bd=0, padx=16, pady=8, cursor='hand2', command=self._reset_defaults).pack(side='left')
         tk.Button(bottom, text='Переобучить ML-модель', bg=COLORS['blue'], fg='white', bd=0, padx=16, pady=8, cursor='hand2', command=self._retrain_model).pack(side='right')
 
     def _reset_defaults(self):
-        if not messagebox.askyesno('Подтверждение', 'Сбросить текущую базу знаний к значениям из курсовой работы?', parent=self):
+        if not messagebox.askyesno('Подтверждение', 'Сбросить текущую базу знаний к стандартным значениям?', parent=self):
             return
         self.kb_service.reset_to_defaults()
         self.ml_service._load()
